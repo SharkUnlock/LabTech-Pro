@@ -4,60 +4,74 @@
     <meta charset="UTF-8">
     <title>SharkUnlock - LabTech Pro</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; padding: 20px; }
-        .card { background: #2d2d2d; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 400px; }
-        h2 { color: #00ffcc; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        label { display: block; margin-top: 15px; color: #aaa; font-size: 0.9em; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; background: #3d3d3d; border: 1px solid #555; border-radius: 6px; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; margin-top: 25px; background: #00ffcc; border: none; border-radius: 6px; color: #1a1a1a; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #00ccaa; transform: scale(1.02); }
-        #resultado { margin-top: 20px; padding: 15px; background: #222; border-left: 4px solid #00ffcc; display: none; }
-        .history-btn { background: #444; color: white; margin-top: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .card { background: #1e1e1e; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 400px; margin-bottom: 20px; border: 1px solid #333; }
+        h2 { color: #00ffcc; text-align: center; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+        label { display: block; margin-top: 15px; color: #888; font-size: 0.8em; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; background: #2a2a2a; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; margin-top: 20px; background: #00ffcc; border: none; border-radius: 6px; color: #121212; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #00cca3; }
+        .search-section { border-top: 1px solid #333; margin-top: 20px; padding-top: 20px; }
+        #resultado, #resBusqueda { margin-top: 20px; padding: 15px; background: #111; border-left: 4px solid #00ffcc; display: none; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>LABTECH PRO</h2>
+        <h2>LabTech Pro</h2>
         
-        <label>Nombre del Cliente</label>
-        <input type="text" id="cliente" placeholder="Ej: Juan Pérez">
-
-        <label>IMEI / Serial</label>
-        <input type="text" id="imei" placeholder="15 dígitos">
-
-        <label>Modelo de iPhone</label>
+        <input type="text" id="cliente" placeholder="Cliente">
+        <input type="text" id="imei" placeholder="IMEI">
         <select id="modelo">
             <option value="iphone_11">iPhone 11</option>
             <option value="iphone_12">iPhone 12</option>
         </select>
-
-        <label>Consumo en Fuente (mA)</label>
-        <input type="number" id="consumo" placeholder="Ej: 450">
-
-        <button onclick="analizarEquipo()">ANALIZAR Y GUARDAR</button>
+        <input type="number" id="consumo" placeholder="Consumo (mA)">
+        <button onclick="analizarEquipo()">ANALIZAR Y REGISTRAR</button>
         
         <div id="resultado">
-            <strong style="color: #00ffcc;">DIAGNÓSTICO:</strong>
-            <p id="diagText"></p>
-            <small id="statusDB" style="color: #888;"></small>
+            <strong>DIAGNÓSTICO:</strong> <span id="diagText"></span>
         </div>
+
+        <div class="search-section">
+            <h3 style="color: #888; font-size: 0.9em; text-align: center;">BUSCADOR DE GARANTÍAS</h3>
+            <input type="text" id="buscarImei" placeholder="Escriba IMEI para buscar...">
+            <button style="background: #333; color: white;" onclick="buscarHistorial()">BUSCAR EN HISTORIAL</button>
+        </div>
+
+        <div id="resBusqueda"></div>
     </div>
 
     <script>
         async function analizarEquipo() {
-            const data = {
-                cliente: document.getElementById('cliente').value,
-                imei: document.getElementById('imei').value,
-                modelo: document.getElementById('modelo').value,
-                consumo: document.getElementById('consumo').value
-            };
+            const c = document.getElementById('cliente').value;
+            const i = document.getElementById('imei').value;
+            const m = document.getElementById('modelo').value;
+            const co = document.getElementById('consumo').value;
 
-            const resp = await fetch(`/api/analizar?cliente=${data.cliente}&imei=${data.imei}&modelo=${data.modelo}&consumo=${data.consumo}`);
-            const result = await resp.json();
-
+            const resp = await fetch(`/api/analizar?cliente=${c}&imei=${i}&modelo=${m}&consumo=${co}`);
+            const res = await resp.json();
             document.getElementById('resultado').style.display = 'block';
-            document.getElementById('diagText').innerText = result.diagnostico;
-            document.getElementById('statusDB').innerText = `Registrado en DB ID: ${result.db_id || 'Existente'}`;
+            document.getElementById('diagText').innerText = res.diagnostico;
+        }
+
+        async function buscarHistorial() {
+            const imei = document.getElementById('buscarImei').value;
+            const resp = await fetch(`/api/historial?imei=${imei}`);
+            const res = await resp.json();
+            const div = document.getElementById('resBusqueda');
+            div.style.display = 'block';
+
+            if(res.error) {
+                div.innerHTML = `<span style="color: #ff4444;">No se encontró registro.</span>`;
+            } else {
+                div.innerHTML = `
+                    <div style="color: #00ffcc;">EQUIPO ENCONTRADO:</div>
+                    <b>Cliente:</b> ${res.cliente}<br>
+                    <b>Modelo:</b> ${res.modelo}<br>
+                    <b>Fecha:</b> ${res.fecha}<br>
+                    <b>Diagnóstico previo:</b> ${res.diagnostico}
+                `;
+            }
         }
     </script>
 </body>

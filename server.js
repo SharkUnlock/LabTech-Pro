@@ -7,13 +7,8 @@ const app = express();
 app.use(express.static('public'));
 app.use(express.json());
 
-// Conexión a la base de datos (se crea el archivo si no existe)
-const db = new sqlite3.Database('./laboratorio.db', (err) => {
-    if (err) console.error("Error al abrir DB:", err.message);
-    else console.log("🛠️ Base de Datos SQLite conectada.");
-});
+const db = new sqlite3.Database('./laboratorio.db');
 
-// Creación de la tabla de historial
 db.run(`CREATE TABLE IF NOT EXISTS reparaciones (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente TEXT,
@@ -28,7 +23,15 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// API de Análisis y Registro
+// NUEVO: Buscar por IMEI
+app.get('/api/historial', (req, res) => {
+    const { imei } = req.query;
+    db.get("SELECT * FROM reparaciones WHERE imei = ?", [imei], (err, row) => {
+        if (err) return res.status(500).json({ error: "Error en DB" });
+        res.json(row || { error: "No encontrado" });
+    });
+});
+
 app.get('/api/analizar', (req, res) => {
     const { cliente, imei, modelo, consumo } = req.query;
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
@@ -37,22 +40,12 @@ app.get('/api/analizar', (req, res) => {
     python.stdout.on('data', (data) => {
         try {
             const resultado = JSON.parse(data.toString());
-            
-            // Insertar registro en el historial
             const query = `INSERT INTO reparaciones (cliente, imei, modelo, consumo, diagnostico) VALUES (?, ?, ?, ?, ?)`;
             db.run(query, [cliente, imei, modelo, consumo, resultado.diagnostico], function(err) {
-                if (err) {
-                    console.log("Aviso: El equipo ya estaba registrado o hubo un error duplicado.");
-                }
                 res.json({ ...resultado, db_id: this ? this.lastID : null });
             });
-        } catch (e) {
-            res.status(500).json({ error: "Fallo en la comunicación con el motor técnico" });
-        }
+        } catch (e) { res.status(500).json({ error: "Error" }); }
     });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 SharkUnlock LabTech Pro v1.3 listo en http://localhost:${PORT}`);
-});
+app.listen(3000, () => console.log("🚀 SharkUnlock v1.4 en puerto 3000"));
