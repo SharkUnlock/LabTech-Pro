@@ -7,20 +7,19 @@ def motor_diagnostico(modelo, consumo):
     except:
         ma = 0
 
-    # Base de datos con coordenadas X, Y (en %) para marcar la placa
     conocimiento = {
         "iphone_11": [
-            {"min": 0, "max": 100, "diag": "Falla en IC de Carga (Hydra).", "x": 40, "y": 75},
-            {"min": 101, "max": 2000, "diag": "Corto en Línea Principal VCC_MAIN.", "x": 60, "y": 35}
+            {"min": 0, "max": 100, "diag": "Falla IC Hydra (Carga).", "x": 40, "y": 75},
+            {"min": 101, "max": 2000, "diag": "Corto en VCC_MAIN.", "x": 60, "y": 35}
         ],
         "iphone_12": [
-            {"min": 0, "max": 2000, "diag": "Revisar unión de placas (Sandwich).", "x": 50, "y": 50}
+            {"min": 0, "max": 2000, "diag": "Falla Interposer (Placas).", "x": 50, "y": 50}
         ]
     }
 
-    res = {"diag": "Realizar mediciones básicas.", "x": 0, "y": 0}
-    if modelo in conocimiento:
-        for p in conocimiento[modelo]:
+    res = {"diag": "Medición básica requerida.", "x": 0, "y": 0}
+    if modelo.lower() in conocimiento:
+        for p in conocimiento[modelo.lower()]:
             if p["min"] <= ma <= p["max"]:
                 res = {"diag": p["diag"], "x": p["x"], "y": p["y"]}
                 break

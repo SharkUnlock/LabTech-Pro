@@ -1,32 +1,36 @@
 const express = require('express');
 const { spawn } = require('child_process');
 const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 const app = express();
 
-app.use(express.json());
 app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+const db = new sqlite3.Database('./laboratorio.db');
 
-// Conexión Inteligente con Python
+db.run(`CREATE TABLE IF NOT EXISTS reparaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente TEXT,
+    imei TEXT UNIQUE,
+    modelo TEXT,
+    consumo INTEGER,
+    diagnostico TEXT,
+    fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
 app.get('/api/analizar', (req, res) => {
-    const { modelo, consumo } = req.query;
-    // Detectamos si es Windows o Linux para el comando de python
+    const { cliente, imei, modelo, consumo } = req.query;
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
     const python = spawn(pythonCmd, ['diagnostico.py', modelo, consumo]);
     
     python.stdout.on('data', (data) => {
-        try {
-            res.json(JSON.parse(data.toString()));
-        } catch (e) {
-            res.status(500).json({ error: "Error procesando datos" });
-        }
+        const resultado = JSON.parse(data.toString());
+        const query = `INSERT INTO reparaciones (cliente, imei, modelo, consumo, diagnostico) VALUES (?, ?, ?, ?, ?)`;
+        
+        db.run(query, [cliente, imei, modelo, consumo, resultado.diagnostico], function(err) {
+            res.json({ ...resultado, db_id: this ? this.lastID : null });
+        });
     });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 LabTech Pro ONLINE en puerto ${PORT}`);
-});
+app.listen(3000, () => console.log("🚀 Server v1.3 listo en http://localhost:3000"));
