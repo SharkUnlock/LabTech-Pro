@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>LabTech Pro | Smart Diagnostic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .placa-container { position: relative; width: 100%; height: 300px; background: #1e293b; border-radius: 15px; border: 1px dashed #38bdf8; }
+        .punto-falla { position: absolute; width: 20px; height: 20px; background: #ef4444; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 20px #ef4444; }
+    </style>
+</head>
+<body class="p-6 flex flex-col items-center">
+    <div class="glass p-8 rounded-3xl w-full max-w-md shadow-2xl">
+        <h1 class="text-3xl font-black text-center mb-6 text-sky-400">LAB<span class="text-white">TECH</span> PRO</h1>
+        
+        <div class="space-y-4">
+            <select id="modelo" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-sky-500">
+                <option value="iphone_11">iPhone 11</option>
+                <option value="iphone_12">iPhone 12</option>
+            </select>
+            <input type="number" id="consumo" placeholder="Consumo mA" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:ring-2 focus:ring-sky-500">
+            <button onclick="analizar()" class="w-full bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold py-3 rounded-xl transition-all">ANALIZAR PLACA</button>
+        </div>
+
+        <div id="resultado" class="mt-8 hidden space-y-4">
+            <p id="diag-texto" class="text-center font-medium text-sky-300"></p>
+            <div class="placa-container">
+                <div id="marcador" class="punto-falla animate-pulse"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analizar() {
+            const m = document.getElementById('modelo').value;
+            const c = document.getElementById('consumo').value;
+            const res = await fetch(`/api/analizar?modelo=${m}&consumo=${c}`);
+            const data = await res.json();
+
+            document.getElementById('resultado').classList.remove('hidden');
+            document.getElementById('diag-texto').innerText = data.diagnostico;
+            
+            const p = document.getElementById('marcador');
+            p.style.left = data.tp_x + "%";
+            p.style.top = data.tp_y + "%";
+        }
+    </script>
+</body>
+</html>
